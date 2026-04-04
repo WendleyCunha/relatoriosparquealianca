@@ -7,20 +7,22 @@ from google.oauth2 import service_account
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Relatório de Serviço", page_icon="📋")
 
-# --- ESTILIZAÇÃO CSS (Borda e Design) ---
+# --- ESTILIZAÇÃO CSS (Borda Preta e Ajustes) ---
 st.markdown("""
     <style>
-    .folha-relatorio {
-        border: 2px solid black;
-        padding: 20px;
-        border-radius: 5px;
-        background-color: white;
-        color: black;
+    /* Estiliza o formulário para parecer papel com borda preta */
+    div[data-testid="stForm"] {
+        border: 2px solid black !important;
+        padding: 30px !important;
+        border-radius: 0px !important;
+        background-color: white !important;
     }
-    .stTextInput label, .stNumberInput label, .stTextArea label, .stCheckbox label {
+    /* Deixa os textos internos pretos para contraste */
+    .stMarkdown, p, label {
         color: black !important;
-        font-weight: bold !important;
     }
+    /* Esconde o botão padrão de submit do form para usarmos o nosso customizado se necessário, 
+       mas aqui vamos manter o padrão para garantir o reset */
     </style>
     """, unsafe_allow_html=True)
 
@@ -54,62 +56,56 @@ def obter_mes_referencia():
              "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
     return f"{meses[mes_anterior.month - 1].upper()} {mes_anterior.year}"
 
-# --- LÓGICA DE LIMPEZA (Reset) ---
-def limpar_formulario():
-    st.session_state["nome_input"] = ""
-    st.session_state["estudos_input"] = 0
-    st.session_state["horas_input"] = 0
-    st.session_state["obs_input"] = ""
-    st.session_state["participou_input"] = False
-    st.session_state["enviado"] = True
-
-# --- INTERFACE ---
+# --- INTERFACE PRINCIPAL ---
 def main():
-    if "enviado" not in st.session_state:
-        st.session_state["enviado"] = False
+    # Inicializa o estado de envio se não existir
+    if "form_enviado" not in st.session_state:
+        st.session_state.form_enviado = False
 
+    st.markdown("<h2 style='text-align: center; color: white;'>RELATÓRIO DE SERVIÇO DE CAMPO</h2>", unsafe_allow_html=True)
+    
     mes_ref = obter_mes_referencia()
 
-    # Título centralizado
-    st.markdown("<h2 style='text-align: center; color: white;'>RELATÓRIO DE SERVIÇO DE CAMPO</h2>", unsafe_allow_html=True)
-
-    # Se já foi enviado, mostra apenas o agradecimento (Efeito de esconder o form)
-    if st.session_state["enviado"]:
+    # 3. LÓGICA DE "SOMBRA D'ÁGUA" (Esconde o formulário após enviar)
+    if st.session_state.form_enviado:
         st.balloons()
-        st.success(f"✅ Seu relatório de {mes_ref} foi enviado com sucesso!")
-        st.info("Os dados foram organizados e estão prontos para o processamento do formulário S-4-T.")
-        if st.button("Enviar outro relatório"):
-            st.session_state["enviado"] = False
+        st.success(f"✅ Obrigado! Seu relatório de {mes_ref} foi enviado.")
+        st.info("O formulário foi limpo para o próximo uso.")
+        
+        if st.button("Enviar Novo Relatório"):
+            st.session_state.form_enviado = False
             st.rerun()
     else:
-        # Início da Borda Preta (Container customizado)
-        st.markdown('<div class="folha-relatorio">', unsafe_allow_html=True)
-        
-        with st.container():
-            nome = st.text_input("Nome:", placeholder="Digite seu nome completo", key="nome_input", help="Campo obrigatório")
-            st.markdown(f"<p style='color:black;'><b>Mês:</b> {mes_ref}</p>", unsafe_allow_html=True)
+        # 2. BORDA PRETA (via st.form)
+        with st.form("meu_formulario", clear_on_submit=True):
+            # 4. NOME OBRIGATÓRIO
+            nome = st.text_input("Nome:", placeholder="Digite seu nome completo")
+            st.write(f"**Mês:** {mes_ref}")
             
             st.markdown("<hr style='border: 1px solid black;'>", unsafe_allow_html=True)
             
-            participou = st.checkbox("Marque se você participou em alguma modalidade do ministério durante o mês.", key="participou_input")
+            participou = st.checkbox("Marque se você participou em alguma modalidade do ministério durante o mês.")
             
             col1, col2 = st.columns([3, 1])
             with col1:
                 st.write("Estudos bíblicos")
             with col2:
-                estudos = st.number_input("", min_value=0, step=1, key="estudos_input", label_visibility="collapsed")
+                estudos = st.number_input("", min_value=0, step=1, label_visibility="collapsed")
                 
             col3, col4 = st.columns([3, 1])
             with col3:
                 st.write("Horas (se for pioneiro auxiliar, regular, especial ou missionário em campo)")
             with col4:
-                horas = st.number_input("", min_value=0, step=1, key="horas_input", label_visibility="collapsed")
+                horas = st.number_input("", min_value=0, step=1, label_visibility="collapsed")
 
-            observacoes = st.text_area("Observações:", height=100, key="obs_input")
+            observacoes = st.text_area("Observações:", height=100)
             
             st.markdown("<hr style='border: 1px solid black;'>", unsafe_allow_html=True)
             
-            if st.button("ENVIAR RELATÓRIO", use_container_width=True, type="primary"):
+            # Botão de submissão do formulário
+            enviar = st.form_submit_button("ENVIAR RELATÓRIO", use_container_width=True)
+
+            if enviar:
                 if nome:
                     dados_final = {
                         "nome": nome,
@@ -123,12 +119,10 @@ def main():
                     }
                     
                     if salvar_relatorio(dados_final):
-                        limpar_formulario()
-                        st.rerun()
+                        st.session_state.form_enviado = True
+                        st.rerun() # Reinicia para aplicar o efeito de sumir o form
                 else:
                     st.error("⚠️ O campo 'Nome' é obrigatório!")
-
-        st.markdown('</div>', unsafe_allow_html=True) # Fim da Borda Preta
 
     st.caption("S-4-T 11/23 | Processamento em Tempo Real")
 
