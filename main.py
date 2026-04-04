@@ -48,6 +48,7 @@ def main():
     if "part_val" not in st.session_state: st.session_state.part_val = False
     if "obs_val" not in st.session_state: st.session_state.obs_val = ""
     if "enviado" not in st.session_state: st.session_state.enviado = False
+    if "ultimo_nome" not in st.session_state: st.session_state.ultimo_nome = ""
 
     # Título e Subtítulo
     st.markdown("<h2 style='text-align: center; margin-bottom: 0;'>RELATÓRIO DE SERVIÇO DE CAMPO</h2>", unsafe_allow_html=True)
@@ -59,11 +60,12 @@ def main():
     placeholder = st.empty()
 
     if st.session_state.enviado:
-        # MENSAGEM DE SUCESSO (ESTILO POP-UP)
+        # MENSAGEM DE SUCESSO PERSONALIZADA
         st.balloons()
         placeholder.markdown(f"""
             <div style="background-color: #d4edda; padding: 40px; border-radius: 15px; border-left: 10px solid #155724; box-shadow: 5px 5px 15px rgba(0,0,0,0.1); text-align: center;">
                 <h1 style="color: #155724; margin-top: 0;">✅ MUITO OBRIGADO!</h1>
+                <h2 style="color: #155724; text-transform: uppercase;">{st.session_state.ultimo_nome}</h2>
                 <h3 style="color: #155724;">Seu relatório de {mes_ref} foi enviado.</h3>
                 <p style="color: #1c1e21; font-size: 18px;">Os dados foram registrados com sucesso.</p>
                 <hr style="border: 0.5px solid #c3e6cb;">
@@ -73,6 +75,7 @@ def main():
         
         time.sleep(15)
         st.session_state.enviado = False
+        st.session_state.ultimo_nome = "" # Limpa o nome para a próxima pessoa
         st.rerun()
 
     else:
@@ -88,14 +91,12 @@ def main():
             with col1:
                 st.write("Estudos bíblicos")
             with col2:
-                # ADICIONADA KEY ÚNICA AQUI PARA EVITAR O ERRO
                 estudos = st.number_input("Estudos", min_value=0, step=1, value=st.session_state.estudos_val, label_visibility="collapsed", key="num_estudos")
                 
             col3, col4 = st.columns([3, 1])
             with col3:
                 st.write("Horas (Pioneiros/Missionários)")
             with col4:
-                # ADICIONADA KEY ÚNICA AQUI PARA EVITAR O ERRO
                 horas = st.number_input("Horas", min_value=0, step=1, value=st.session_state.horas_val, label_visibility="collapsed", key="num_horas")
 
             observacoes = st.text_area("Observações:", value=st.session_state.obs_val, height=100, key="txt_obs")
@@ -118,6 +119,9 @@ def main():
                     }
                     
                     if salvar_relatorio(dados_final):
+                        # SALVA O NOME PARA MOSTRAR NA PRÓXIMA TELA
+                        st.session_state.ultimo_nome = nome
+                        
                         # Limpa os estados para o próximo uso
                         st.session_state.nome_val = ""
                         st.session_state.estudos_val = 0
