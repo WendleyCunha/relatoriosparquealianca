@@ -7,23 +7,6 @@ from google.oauth2 import service_account
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Relatório de Serviço", page_icon="📋")
 
-# --- ESTILIZAÇÃO CSS (Borda Preta e Visual de Papel) ---
-st.markdown("""
-    <style>
-    /* Borda preta em volta do formulário */
-    div[data-testid="stForm"] {
-        border: 2px solid black !important;
-        padding: 30px !important;
-        border-radius: 5px !important;
-        background-color: white !important;
-    }
-    /* Forçar textos internos a ficarem pretos para contraste no fundo branco */
-    .stMarkdown, p, label {
-        color: black !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
 # --- CONEXÃO COM FIRESTORE ---
 def inicializar_db():
     if "db" not in st.session_state:
@@ -46,10 +29,9 @@ def salvar_relatorio(dados):
             st.error(f"Erro ao salvar: {e}")
     return False
 
-# --- LÓGICA DO MÊS ANTERIOR (Ex: Se hoje é Maio, mostra Abril) ---
+# --- LÓGICA DO MÊS ANTERIOR (Ponto 3) ---
 def obter_mes_referencia():
     hoje = datetime.date.today()
-    # Pega o primeiro dia do mês atual e subtrai 1 dia para cair no mês anterior
     primeiro_dia_mes_atual = hoje.replace(day=1)
     mes_anterior = primeiro_dia_mes_atual - datetime.timedelta(days=1)
     
@@ -64,39 +46,41 @@ def obter_mes_referencia():
 
 # --- INTERFACE ---
 def main():
-    # Inicializa controle de exibição
-    if "sucesso" not in st.session_state:
-        st.session_state.sucesso = False
+    # Inicializa o estado de sucesso para controle de exibição e limpeza
+    if "form_pode_exibir" not in st.session_state:
+        st.session_state.form_pode_exibir = True
 
-    # 2 - Cabeçalho com Letra Melhorada
-    st.markdown("<h2 style='text-align: center; margin-bottom: 0;'>RELATÓRIO DE SERVIÇO DE CAMPO</h2>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; font-size: 20px; font-family: serif; font-style: italic;'>Parque Aliança (72249)</p>", unsafe_allow_html=True)
+    # 2 - Cabeçalho com Letra Melhorada e Identificação da Congregação
+    st.markdown("<h2 style='text-align: center; margin-bottom: 0px;'>RELATÓRIO DE SERVIÇO DE CAMPO</h2>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; font-size: 22px; font-family: serif; font-style: italic; color: #555;'>Parque Aliança (72249)</p>", unsafe_allow_html=True)
     
     mes_ref = obter_mes_referencia()
 
-    # 6 - Mensagem de Sucesso Estilizada (Efeito Pop-up/Sombra)
-    if st.session_state.sucesso:
+    # 6 - Mensagem de Sucesso Estilizada (Tipo Pop-up com Sombra)
+    if not st.session_state.form_pode_exibir:
         st.balloons()
-        st.markdown("""
-            <div style="background-color: #d4edda; padding: 30px; border-radius: 10px; border: 2px solid #155724; text-align: center; box-shadow: 10px 10px 20px rgba(0,0,0,0.2);">
-                <h1 style="color: #155724;">✅ MUITO OBRIGADO!</h1>
-                <p style="color: #155724; font-size: 18px;">Seu relatório de <b>""" + mes_ref + """</b> foi enviado com sucesso.</p>
+        st.markdown(f"""
+            <div style="background-color: #f0f2f6; padding: 40px; border-radius: 15px; border-left: 10px solid #28a745; box-shadow: 5px 5px 15px rgba(0,0,0,0.1); margin-top: 20px;">
+                <h1 style="color: #28a745; margin-top: 0;">Obrigado!</h1>
+                <h3 style="color: #31333F;">Seu relatório de {mes_ref} foi enviado.</h3>
+                <p style="color: #555;">Os dados já estão disponíveis para o processamento do formulário S-4-T.</p>
             </div>
         """, unsafe_allow_html=True)
+        
         st.write("")
-        if st.button("ENVIAR OUTRO RELATÓRIO"):
-            st.session_state.sucesso = False
+        if st.button("ENVIAR OUTRO RELATÓRIO", use_container_width=True):
+            st.session_state.form_pode_exibir = True
             st.rerun()
     
     else:
-        # 4 - clear_on_submit=True garante que os dados sejam limpos ao enviar
-        with st.form("form_relatorio", clear_on_submit=True):
+        # 4 - O uso do 'st.form' com 'clear_on_submit=True' garante a limpeza dos campos
+        with st.form("meu_formulario_limpo", clear_on_submit=True):
             
-            # 1 - Nome obrigatório (validado no botão abaixo)
+            # 1 - Nome obrigatório
             nome = st.text_input("Nome:", placeholder="Digite seu nome completo")
-            st.write(f"**Mês de Referência:** {mes_ref}")
+            st.markdown(f"**Mês de Referência:** `{mes_ref}`")
             
-            st.markdown("<hr style='border: 1px solid black;'>", unsafe_allow_html=True)
+            st.markdown("---")
             
             participou = st.checkbox("Marque se você participou em alguma modalidade do ministério durante o mês.")
             
@@ -114,13 +98,13 @@ def main():
 
             observacoes = st.text_area("Observações:", height=100)
             
-            st.markdown("<hr style='border: 1px solid black;'>", unsafe_allow_html=True)
+            st.markdown("---")
             
-            # Botão de submissão do formulário
+            # Botão de Enviar dentro do Form
             enviar = st.form_submit_button("ENVIAR RELATÓRIO", use_container_width=True)
-
+            
             if enviar:
-                if nome.strip(): # Valida se o nome não está vazio
+                if nome.strip(): # 1 - Validação de nome obrigatório
                     dados_final = {
                         "nome": nome,
                         "mes_referencia": mes_ref,
@@ -133,12 +117,14 @@ def main():
                     }
                     
                     if salvar_relatorio(dados_final):
-                        st.session_state.sucesso = True
+                        st.session_state.form_pode_exibir = False
                         st.rerun()
                 else:
-                    st.error("⚠️ O campo 'Nome' é obrigatório!")
+                    st.error("⚠️ O campo 'Nome' é obrigatório para o envio.")
 
-    st.caption("S-4-T 11/23 | Processamento em Tempo Real")
+    # Rodapé técnico
+    st.write("")
+    st.caption("S-4-T 11/23 | Parque Aliança | Processamento Digital")
 
 if __name__ == "__main__":
     main()
