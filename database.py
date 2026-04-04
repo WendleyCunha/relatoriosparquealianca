@@ -14,7 +14,7 @@ def inicializar_db():
             key_dict = json.loads(st.secrets["textkey"])
             creds = service_account.Credentials.from_service_account_info(key_dict)
             # Mantém o seu projeto original, mas vamos gravar em coleções novas
-            st.session_state.db = firestore.Client(credentials=creds, project="bancowendley")
+            st.session_state.db = firestore.Client(credentials=creds, project="wendleydesenvolvimento")
         except Exception as e:
             st.error(f"Erro ao conectar no Firebase: {e}")
             return None
