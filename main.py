@@ -52,7 +52,7 @@ def main():
 
     # Título e Subtítulo
     st.markdown("<h2 style='text-align: center; margin-bottom: 0;'>RELATÓRIO DE SERVIÇO DE CAMPO</h2>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; font-size: 20px; font-family: serif; font-style: italic; color: #555; margin-top: 0;'>Parque Aliança (72249)</p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; font-size: 20px; font-family: serif; font-style: italic; color: #555; margin-top: 0;'>Congregação Parque Aliança (72249)</p>", unsafe_allow_html=True)
     
     mes_ref = obter_mes_referencia()
 
