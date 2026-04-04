@@ -30,106 +30,102 @@ def salvar_relatorio(dados):
             st.error(f"Erro ao salvar: {e}")
     return False
 
-# --- LÓGICA DO MÊS ANTERIOR (AUTO-AJUSTE) ---
+# --- LÓGICA DO MÊS ANTERIOR ---
 def obter_mes_referencia():
     hoje = datetime.date.today()
     primeiro_dia_mes_atual = hoje.replace(day=1)
     mes_anterior = primeiro_dia_mes_atual - datetime.timedelta(days=1)
-    
-    meses = [
-        "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-        "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
-    ]
-    
-    nome_mes = meses[mes_anterior.month - 1]
-    ano = mes_anterior.year
-    return f"{nome_mes.upper()} {ano}"
+    meses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+             "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
+    return f"{meses[mes_anterior.month - 1].upper()} {mes_anterior.year}"
 
 # --- INTERFACE ---
 def main():
-    # Inicialização de estados para limpeza dos campos (Ponto 4)
+    # Inicialização de estados
     if "nome_val" not in st.session_state: st.session_state.nome_val = ""
     if "estudos_val" not in st.session_state: st.session_state.estudos_val = 0
     if "horas_val" not in st.session_state: st.session_state.horas_val = 0
     if "part_val" not in st.session_state: st.session_state.part_val = False
     if "obs_val" not in st.session_state: st.session_state.obs_val = ""
+    if "enviado" not in st.session_state: st.session_state.enviado = False
 
-    # Título e Subtítulo (Ponto 2)
+    # Título e Subtítulo
     st.markdown("<h2 style='text-align: center; margin-bottom: 0;'>RELATÓRIO DE SERVIÇO DE CAMPO</h2>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center; font-size: 20px; font-family: serif; font-style: italic; color: #555; margin-top: 0;'>Parque Aliança (72249)</p>", unsafe_allow_html=True)
     
     mes_ref = obter_mes_referencia()
 
-    # Container principal do formulário
-    placeholder_form = st.empty()
+    # Espaço para o formulário ou mensagem de sucesso
+    placeholder = st.empty()
 
-    with placeholder_form.container():
-        nome = st.text_input("Nome:", value=st.session_state.nome_val, placeholder="Campo obrigatório")
-        st.write(f"**Mês de Referência:** {mes_ref}")
+    if st.session_state.enviado:
+        # MENSAGEM DE SUCESSO (ESTILO POP-UP)
+        st.balloons()
+        placeholder.markdown(f"""
+            <div style="background-color: #d4edda; padding: 40px; border-radius: 15px; border-left: 10px solid #155724; box-shadow: 5px 5px 15px rgba(0,0,0,0.1); text-align: center;">
+                <h1 style="color: #155724; margin-top: 0;">✅ MUITO OBRIGADO!</h1>
+                <h3 style="color: #155724;">Seu relatório de {mes_ref} foi enviado.</h3>
+                <p style="color: #1c1e21; font-size: 18px;">Os dados foram registrados com sucesso.</p>
+                <hr style="border: 0.5px solid #c3e6cb;">
+                <p style="color: #666;">Aguarde 15 segundos para finalizar...</p>
+            </div>
+        """, unsafe_allow_html=True)
         
-        st.markdown("---")
-        
-        participou = st.checkbox("Marque se você participou em alguma modalidade do ministério durante o mês.", value=st.session_state.part_val)
-        
-        col1, col2 = st.columns([3, 1])
-        with col1:
-            st.write("Estudos bíblicos")
-        with col2:
-            estudos = st.number_input("", min_value=0, step=1, value=st.session_state.estudos_val, label_visibility="collapsed")
+        time.sleep(15)
+        st.session_state.enviado = False
+        st.rerun()
+
+    else:
+        with placeholder.container():
+            nome = st.text_input("Nome:", value=st.session_state.nome_val, placeholder="Campo obrigatório", key="txt_nome")
+            st.write(f"**Mês de Referência:** {mes_ref}")
             
-        col3, col4 = st.columns([3, 1])
-        with col3:
-            st.write("Horas (se for pioneiro auxiliar, regular, especial ou missionário em campo)")
-        with col4:
-            horas = st.number_input("", min_value=0, step=1, value=st.session_state.horas_val, label_visibility="collapsed")
-
-        observacoes = st.text_area("Observações:", value=st.session_state.obs_val, height=100)
-        
-        st.markdown("---")
-        
-        if st.button("ENVIAR RELATÓRIO", use_container_width=True):
-            if not nome.strip(): # Ponto 1: Nome Obrigatório
-                st.error("⚠️ O campo 'Nome' é obrigatório!")
-            else:
-                dados_final = {
-                    "nome": nome,
-                    "mes_referencia": mes_ref,
-                    "participou_ministerio": participou,
-                    "estudos_biblicos": estudos,
-                    "horas": horas,
-                    "observacoes": observacoes,
-                    "data_envio": datetime.datetime.now(),
-                    "status_pdf": "PENDENTE"
-                }
+            st.markdown("---")
+            
+            participou = st.checkbox("Marque se você participou em alguma modalidade do ministério durante o mês.", value=st.session_state.part_val, key="chk_part")
+            
+            col1, col2 = st.columns([3, 1])
+            with col1:
+                st.write("Estudos bíblicos")
+            with col2:
+                # ADICIONADA KEY ÚNICA AQUI PARA EVITAR O ERRO
+                estudos = st.number_input("Estudos", min_value=0, step=1, value=st.session_state.estudos_val, label_visibility="collapsed", key="num_estudos")
                 
-                if salvar_relatorio(dados_final):
-                    # Limpa o formulário visualmente escondendo o container
-                    placeholder_form.empty()
+            col3, col4 = st.columns([3, 1])
+            with col3:
+                st.write("Horas (Pioneiros/Missionários)")
+            with col4:
+                # ADICIONADA KEY ÚNICA AQUI PARA EVITAR O ERRO
+                horas = st.number_input("Horas", min_value=0, step=1, value=st.session_state.horas_val, label_visibility="collapsed", key="num_horas")
+
+            observacoes = st.text_area("Observações:", value=st.session_state.obs_val, height=100, key="txt_obs")
+            
+            st.markdown("---")
+            
+            if st.button("ENVIAR RELATÓRIO", use_container_width=True):
+                if not nome.strip():
+                    st.error("⚠️ O campo 'Nome' é obrigatório!")
+                else:
+                    dados_final = {
+                        "nome": nome,
+                        "mes_referencia": mes_ref,
+                        "participou_ministerio": participou,
+                        "estudos_biblicos": estudos,
+                        "horas": horas,
+                        "observacoes": observacoes,
+                        "data_envio": datetime.datetime.now(),
+                        "status_pdf": "PENDENTE"
+                    }
                     
-                    # Efeito visual (Ponto 6)
-                    st.balloons()
-                    
-                    # Mensagem de Sucesso Estilizada (Destaque)
-                    st.markdown(f"""
-                        <div style="background-color: #d4edda; padding: 40px; border-radius: 15px; border-left: 10px solid #155724; box-shadow: 5px 5px 15px rgba(0,0,0,0.1); text-align: center;">
-                            <h1 style="color: #155724; margin-top: 0;">✅ MUITO OBRIGADO!</h1>
-                            <h3 style="color: #155724;">Seu relatório de {mes_ref} foi enviado.</h3>
-                            <p style="color: #1c1e21; font-size: 18px;"><b>{nome}</b>, seus dados foram registrados com sucesso.</p>
-                            <hr style="border: 0.5px solid #c3e6cb;">
-                            <p style="color: #666;">Aguarde 15 segundos para uma nova submissão...</p>
-                        </div>
-                    """, unsafe_allow_html=True)
-                    
-                    # Reset dos estados internos (Ponto 4)
-                    st.session_state.nome_val = ""
-                    st.session_state.estudos_val = 0
-                    st.session_state.horas_val = 0
-                    st.session_state.part_val = False
-                    st.session_state.obs_val = ""
-                    
-                    # Pausa de 15 segundos na tela de agradecimento
-                    time.sleep(15)
-                    st.rerun()
+                    if salvar_relatorio(dados_final):
+                        # Limpa os estados para o próximo uso
+                        st.session_state.nome_val = ""
+                        st.session_state.estudos_val = 0
+                        st.session_state.horas_val = 0
+                        st.session_state.part_val = False
+                        st.session_state.obs_val = ""
+                        st.session_state.enviado = True
+                        st.rerun()
 
     st.caption("S-4-T 11/23 | Parque Aliança | Processamento Digital")
 
