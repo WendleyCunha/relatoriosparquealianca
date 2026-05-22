@@ -37,7 +37,22 @@ def obter_mes_referencia():
     mes_anterior = primeiro_dia_mes_atual - datetime.timedelta(days=1)
     meses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
              "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
-    return f"{meses[mes_anterior.month - 1].upper()} {mes_anterior.year}"
+    ano = mes_anterior.year
+    return f"{meses[mes_anterior.month - 1].upper()} {ano}"
+
+# --- FUNÇÃO DA ABA ANÚNCIOS ---
+def exibir_anuncios():
+    st.subheader("📢 Quadro de Anúncios")
+    db = inicializar_db()
+    if db:
+        docs = db.collection("anuncios").order_by("data_postagem", direction="DESCENDING").limit(1).stream()
+        encontrou = False
+        for doc in docs:
+            dados = doc.to_dict()
+            st.markdown(dados.get("conteudo", "Sem conteúdo."))
+            encontrou = True
+        if not encontrou:
+            st.info("Nenhum anúncio disponível no momento.")
 
 # --- INTERFACE ---
 def main():
@@ -50,92 +65,75 @@ def main():
     if "enviado" not in st.session_state: st.session_state.enviado = False
     if "ultimo_nome" not in st.session_state: st.session_state.ultimo_nome = ""
 
-    # Título e Subtítulo
-    st.markdown("<h2 style='text-align: center; margin-bottom: 0;'>RELATÓRIO DE SERVIÇO DE CAMPO</h2>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; font-size: 20px; font-family: serif; font-style: italic; color: #555; margin-top: 0;'>Congregação Parque Aliança (72249)</p>", unsafe_allow_html=True)
-    
-    mes_ref = obter_mes_referencia()
+    # CRIAÇÃO DAS ABAS
+    tab1, tab2 = st.tabs(["📋 Relatório", "📢 Anúncios"])
 
-    # Espaço para o formulário ou mensagem de sucesso
-    placeholder = st.empty()
+    with tab1:
+        # Título e Subtítulo
+        st.markdown("<h2 style='text-align: center; margin-bottom: 0;'>RELATÓRIO DE SERVIÇO DE CAMPO</h2>", unsafe_allow_html=True)
+        st.markdown("<p style='text-align: center; font-size: 20px; font-family: serif; font-style: italic; color: #555; margin-top: 0;'>Congregação Parque Aliança (72249)</p>", unsafe_allow_html=True)
+        
+        mes_ref = obter_mes_referencia()
+        placeholder = st.empty()
 
-    if st.session_state.enviado:
-        # MENSAGEM DE SUCESSO PERSONALIZADA
-        st.balloons()
-        with placeholder.container():
-            st.markdown(f"""
-                <div style="background-color: #d4edda; padding: 40px; border-radius: 15px; border-left: 10px solid #155724; box-shadow: 5px 5px 15px rgba(0,0,0,0.1); text-align: center;">
-                    <h1 style="color: #155724; margin-top: 0;">✅ MUITO OBRIGADO!</h1>
-                    <h2 style="color: #155724; text-transform: uppercase;">{st.session_state.ultimo_nome}</h2>
-                    <h3 style="color: #155724;">Seu relatório de {mes_ref} foi enviado.</h3>
-                    <p style="color: #1c1e21; font-size: 18px;">Os dados foram registrados com sucesso.</p>
-                </div>
-            """, unsafe_allow_html=True)
-            
-            st.write("") # Espaço extra
-            if st.button("ENVIAR OUTRO RELATÓRIO", use_container_width=True):
-                # Reseta o estado de envio e limpa o nome
-                st.session_state.enviado = False
-                st.session_state.ultimo_nome = ""
-                # Limpa as chaves dos widgets para o formulário voltar em branco
-                for key in ["txt_nome", "chk_part", "num_estudos", "num_horas", "txt_obs"]:
-                    if key in st.session_state:
-                        st.session_state[key] = "" if "txt" in key else (0 if "num" in key else False)
-                st.rerun()
-
-    else:
-        with placeholder.container():
-            nome = st.text_input("Nome:", value=st.session_state.nome_val, placeholder="Campo obrigatório", key="txt_nome")
-            st.write(f"**Mês de Referência:** {mes_ref}")
-            
-            st.markdown("---")
-            
-            participou = st.checkbox("Marque se você participou em alguma modalidade do ministério durante o mês.", value=st.session_state.part_val, key="chk_part")
-            
-            col1, col2 = st.columns([3, 1])
-            with col1:
-                st.write("Estudos bíblicos")
-            with col2:
-                estudos = st.number_input("Estudos", min_value=0, step=1, value=st.session_state.estudos_val, label_visibility="collapsed", key="num_estudos")
+        if st.session_state.enviado:
+            # MENSAGEM DE SUCESSO PERSONALIZADA
+            st.balloons()
+            with placeholder.container():
+                st.markdown(f"""
+                    <div style="background-color: #d4edda; padding: 40px; border-radius: 15px; border-left: 10px solid #155724; box-shadow: 5px 5px 15px rgba(0,0,0,0.1); text-align: center;">
+                        <h1 style="color: #155724; margin-top: 0;">✅ MUITO OBRIGADO!</h1>
+                        <h2 style="color: #155724; text-transform: uppercase;">{st.session_state.ultimo_nome}</h2>
+                        <h3 style="color: #155724;">Seu relatório de {mes_ref} foi enviado.</h3>
+                        <p style="color: #1c1e21; font-size: 18px;">Os dados foram registrados com sucesso.</p>
+                    </div>
+                """, unsafe_allow_html=True)
                 
-            col3, col4 = st.columns([3, 1])
-            with col3:
-                st.write("Horas (Pioneiros/Missionários)")
-            with col4:
-                horas = st.number_input("Horas", min_value=0, step=1, value=st.session_state.horas_val, label_visibility="collapsed", key="num_horas")
+                if st.button("ENVIAR OUTRO RELATÓRIO", use_container_width=True):
+                    st.session_state.enviado = False
+                    st.session_state.ultimo_nome = ""
+                    for key in ["txt_nome", "chk_part", "num_estudos", "num_horas", "txt_obs"]:
+                        if key in st.session_state:
+                            st.session_state[key] = "" if "txt" in key else (0 if "num" in key else False)
+                    st.rerun()
 
-            observacoes = st.text_area("Observações:", value=st.session_state.obs_val, height=100, key="txt_obs")
-            
-            st.markdown("---")
-            
-            if st.button("ENVIAR RELATÓRIO", use_container_width=True):
-                if not nome.strip():
-                    st.error("⚠️ O campo 'Nome' é obrigatório!")
-                else:
-                    # DADOS EXATAMENTE COMO ESTAVAM NO ORIGINAL
-                    dados_final = {
-                        "nome": nome,
-                        "mes_referencia": mes_ref,
-                        "participou_ministerio": participou,
-                        "estudos_biblicos": estudos,
-                        "horas": horas,
-                        "observacoes": observacoes,
-                        "data_envio": datetime.datetime.now(),
-                        "status_pdf": "PENDENTE"
-                    }
-                    
-                    if salvar_relatorio(dados_final):
-                        st.session_state.ultimo_nome = nome
-                        
-                        # Limpa os estados internos para o próximo uso
-                        st.session_state.nome_val = ""
-                        st.session_state.estudos_val = 0
-                        st.session_state.horas_val = 0
-                        st.session_state.part_val = False
-                        st.session_state.obs_val = ""
-                        
-                        st.session_state.enviado = True
-                        st.rerun()
+        else:
+            with placeholder.container():
+                nome = st.text_input("Nome:", value=st.session_state.nome_val, placeholder="Campo obrigatório", key="txt_nome")
+                st.write(f"**Mês de Referência:** {mes_ref}")
+                st.markdown("---")
+                participou = st.checkbox("Marque se você participou em alguma modalidade do ministério durante o mês.", value=st.session_state.part_val, key="chk_part")
+                
+                col1, col2 = st.columns([3, 1])
+                with col1: st.write("Estudos bíblicos")
+                with col2: estudos = st.number_input("Estudos", min_value=0, step=1, value=st.session_state.estudos_val, label_visibility="collapsed", key="num_estudos")
+                
+                col3, col4 = st.columns([3, 1])
+                with col3: st.write("Horas (Pioneiros/Missionários)")
+                with col4: horas = st.number_input("Horas", min_value=0, step=1, value=st.session_state.horas_val, label_visibility="collapsed", key="num_horas")
+
+                observacoes = st.text_area("Observações:", value=st.session_state.obs_val, height=100, key="txt_obs")
+                st.markdown("---")
+                
+                if st.button("ENVIAR RELATÓRIO", use_container_width=True):
+                    if not nome.strip():
+                        st.error("⚠️ O campo 'Nome' é obrigatório!")
+                    else:
+                        dados_final = {
+                            "nome": nome, "mes_referencia": mes_ref, "participou_ministerio": participou,
+                            "estudos_biblicos": estudos, "horas": horas, "observacoes": observacoes,
+                            "data_envio": datetime.datetime.now(), "status_pdf": "PENDENTE"
+                        }
+                        if salvar_relatorio(dados_final):
+                            st.session_state.ultimo_nome = nome
+                            st.session_state.nome_val = ""; st.session_state.estudos_val = 0
+                            st.session_state.horas_val = 0; st.session_state.part_val = False
+                            st.session_state.obs_val = ""
+                            st.session_state.enviado = True
+                            st.rerun()
+
+    with tab2:
+        exibir_anuncios()
 
     st.caption("S-4-T 11/23 | Parque Aliança | Processamento Digital")
 
