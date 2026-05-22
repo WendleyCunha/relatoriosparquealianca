@@ -49,14 +49,20 @@ def salvar_relatorio(dados):
             st.error(f"Erro ao salvar: {e}")
     return False
 
+# --- LÓGICA DO MÊS ANTERIOR ---
 def obter_mes_referencia():
     hoje = datetime.date.today()
     primeiro_dia_mes_atual = hoje.replace(day=1)
     mes_anterior = primeiro_dia_mes_atual - datetime.timedelta(days=1)
+    
     meses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
              "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
-    return f"{meses[mes_anterior.month - 1].upper()} {melhor_ano := mes_anterior.year}"
-
+    
+    # Extraímos o mês e o ano separadamente para evitar erros
+    nome_mes = meses[mes_anterior.month - 1].upper()
+    ano = mes_anterior.year
+    
+    return f"{nome_mes} {ano}"
 # --- INTERFACE PRINCIPAL ---
 def main():
     # Inicialização de estados
