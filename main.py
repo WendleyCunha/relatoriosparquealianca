@@ -40,17 +40,33 @@ def obter_mes_referencia():
     ano = mes_anterior.year
     return f"{meses[mes_anterior.month - 1].upper()} {ano}"
 
-# --- FUNÇÃO DA ABA ANÚNCIOS ---
+# --- FUNÇÃO DA ABA ANÚNCIOS ATUALIZADA ---
 def exibir_anuncios():
     st.subheader("📢 Quadro de Anúncios")
     db = inicializar_db()
     if db:
-        docs = db.collection("anuncios").order_by("data_postagem", direction="DESCENDING").limit(1).stream()
+        # Busca os anúncios ordenados pela data, limitado a 5 para não ficar vazio
+        docs = db.collection("anuncios").order_by("data_postagem", direction="DESCENDING").limit(5).stream()
+        
         encontrou = False
         for doc in docs:
-            dados = doc.to_dict()
-            st.markdown(dados.get("conteudo", "Sem conteúdo."))
             encontrou = True
+            dados = doc.to_dict()
+            
+            # Cabeçalho do anúncio
+            titulo = dados.get("titulo", "Anúncio")
+            st.markdown(f"### {titulo}")
+            
+            # Lógica para renderizar corretamente conforme o formato salvo no Admin
+            conteudo = dados.get("conteudo_html", "")
+            if dados.get("renderizar_markdown", False):
+                st.markdown(conteudo)
+            else:
+                # Renderiza HTML (como imagens ou agendas)
+                st.markdown(conteudo, unsafe_allow_html=True)
+            
+            st.divider() # Linha separadora entre anúncios
+            
         if not encontrou:
             st.info("Nenhum anúncio disponível no momento.")
 
