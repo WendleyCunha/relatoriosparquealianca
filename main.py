@@ -30,15 +30,31 @@ def salvar_relatorio(dados):
             st.error(f"Erro ao salvar: {e}")
     return False
 
-# --- LÓGICA DO MÊS ANTERIOR ---
+# --- LÓGICA DO MÊS DE REFERÊNCIA ---
+# CORREÇÃO: a versão anterior desta função SEMPRE devolvia o mês
+# anterior, sem olhar o dia — ou seja, um envio feito no dia 25 (já
+# depois do fechamento do mês) continuava caindo errado no mês passado.
+# Agora aplicamos o corte no dia 20, igual ao usado no painel admin
+# (admin-parquealianca / utilitarios.py):
+#   - Dias 1 a 20  -> ainda conta para o MÊS ANTERIOR
+#   - Dias 21 a 31 -> já conta para o MÊS ATUAL
+# Ex: envio em 20/07 -> "JULHO" errado antes / "JUNHO" certo agora seria
+# igual (mês anterior já era o resultado antes por acaso); o que muda de
+# verdade é o envio em 21/07 a 31/07, que antes caía errado em "JUNHO"
+# e agora cai certo em "JULHO".
 def obter_mes_referencia():
     hoje = datetime.date.today()
-    primeiro_dia_mes_atual = hoje.replace(day=1)
-    mes_anterior = primeiro_dia_mes_atual - datetime.timedelta(days=1)
     meses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
              "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
-    ano = mes_anterior.year
-    return f"{meses[mes_anterior.month - 1].upper()} {ano}"
+
+    if hoje.day > 20:
+        mes_ref_data = hoje
+    else:
+        primeiro_dia_mes_atual = hoje.replace(day=1)
+        mes_ref_data = primeiro_dia_mes_atual - datetime.timedelta(days=1)
+
+    ano = mes_ref_data.year
+    return f"{meses[mes_ref_data.month - 1].upper()} {ano}"
 
 # --- FUNÇÃO DA ABA ANÚNCIOS ATUALIZADA ---
 def exibir_anuncios():
