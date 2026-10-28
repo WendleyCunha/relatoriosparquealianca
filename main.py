@@ -53,8 +53,20 @@ def obter_mes_referencia():
         primeiro_dia_mes_atual = hoje.replace(day=1)
         mes_ref_data = primeiro_dia_mes_atual - datetime.timedelta(days=1)
 
-    ano = mes_ref_data.year
+    # [CORREÇÃO — ano de serviço] O painel admin e o hub usam o ANO DE
+    # SERVIÇO no rótulo (setembro a agosto, com o número do ano do agosto):
+    # setembro–dezembro ganham +1 no ano. Ex.: relatório de setembro/2026
+    # vira "SETEMBRO 2027" (igual ao cartão S-21 e ao JW Hub). Antes este
+    # formulário gravava "SETEMBRO 2026", que no admin significa set/2025.
+    ano = mes_ref_data.year + 1 if mes_ref_data.month >= 9 else mes_ref_data.year
     return f"{meses[mes_ref_data.month - 1].upper()} {ano}"
+
+
+def obter_mes_chave():
+    """Mês do relatório em formato AAAA-MM (sem ambiguidade de ano)."""
+    hoje = datetime.date.today()
+    d = hoje if hoje.day > 20 else hoje.replace(day=1) - datetime.timedelta(days=1)
+    return f"{d.year:04d}-{d.month:02d}"
 
 # --- FUNÇÃO DA ABA ANÚNCIOS ATUALIZADA ---
 def exibir_anuncios():
@@ -152,7 +164,8 @@ def main():
                         st.error("⚠️ O campo 'Nome' é obrigatório!")
                     else:
                         dados_final = {
-                            "nome": nome, "mes_referencia": mes_ref, "participou_ministerio": participou,
+                            "nome": nome, "mes_referencia": mes_ref, "mes_chave": obter_mes_chave(),
+                            "participou_ministerio": participou,
                             "estudos_biblicos": estudos, "horas": horas, "observacoes": observacoes,
                             "data_envio": datetime.datetime.now(), "status_pdf": "PENDENTE"
                         }
